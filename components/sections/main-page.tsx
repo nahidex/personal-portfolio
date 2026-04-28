@@ -109,6 +109,22 @@ export function MainPage() {
   const [worksExtraScroll, setWorksExtraScroll] = useState(0);
   const worksExtraScrollRef = useRef(0);
   const [time, setTime] = useState("");
+  const frameIconRef = useRef<HTMLDivElement>(null);
+
+  // ── pulse glow on frame icon ─────────────────────────────────────────────
+  useEffect(() => {
+    const el = frameIconRef.current;
+    if (!el) return;
+    gsap.to(el, {
+      opacity: 0.15,
+      scale: 0.85,
+      duration: 0.9,
+      ease: "sine.inOut",
+      yoyo: true,
+      repeat: -1,
+    });
+    return () => { gsap.killTweensOf(el); };
+  }, []);
 
   // ── viewport scale ──────────────────────────────────────────────────────────
   useEffect(() => {
@@ -453,6 +469,7 @@ export function MainPage() {
               height: 322.781,
               borderRadius: 320,
               overflow: "hidden",
+              zIndex: 2,
             }}
           >
             <Image
@@ -466,6 +483,7 @@ export function MainPage() {
 
           {/* Frame icon */}
           <div
+            ref={frameIconRef}
             style={{
               position: "absolute",
               left: 1201,
@@ -486,6 +504,7 @@ export function MainPage() {
               top: 569.4,
               height: 1,
               background: "#01c45e",
+              zIndex: 1,
             }}
           />
 
