@@ -52,8 +52,18 @@ const DW = 1920;
 const DH = 6300;
 // canvas-Y where works section sticks flush below the nav
 const LOCK_CANVAS_Y = 2003.53; // works divider (2078.53) – nav height (75)
+const LOCK2_CANVAS_Y = 3900;   // canvas Y to pin for testimonials
+const PER_CARD_SCROLL = 320;   // screen-px per testimonial card advance
+const TESTIMONIALS_EXTRA = 4 * PER_CARD_SCROLL; // n cards → n steps so last card stays visible
 
 const TESTIMONIALS_DATA = [
+  {
+    name: "Habibullah Nahid",
+    role: "Founder and CEO",
+    company: "CraftedAI",
+    quote:
+      "Nahid has both the vision and the talent of a topnotch UI/UX designer. I provided him with the objective of my project, and I was given a final product that far exceeded my expectations. He understands complex design principles and understands how to get from ideation to implementation fairly quickly. Book a gig with this Seller and you will be impressed as well.",
+  },
   {
     name: "Pike Wrang",
     role: "Founder and CEO",
@@ -94,10 +104,8 @@ export function MainPage() {
   const aboutZoneRef = useRef<HTMLDivElement>(null);
   const aboutOverlayRef = useRef<HTMLDivElement>(null);
   const [aboutHovered, setAboutHovered] = useState(false);
-  const [revealedCount, setRevealedCount] = useState(0);
-  const revealedCountRef = useRef(0);
-  const testimonialsListRef = useRef<HTMLDivElement>(null);
-  const testimonialsScrollStartRef = useRef<number | null>(null);
+  const [activeIdx, setActiveIdx] = useState(0);
+  const activeIdxRef = useRef(0);
   const [worksExtraScroll, setWorksExtraScroll] = useState(0);
   const worksExtraScrollRef = useRef(0);
   const [time, setTime] = useState("");
@@ -122,12 +130,14 @@ export function MainPage() {
     const maxH = worksExtraScrollRef.current;
     const lockAt = LOCK_CANVAS_Y * s;
     const worksEndAt = lockAt + maxH * s;
-    const cy =
-      sy <= lockAt
-        ? -sy / s
-        : sy <= worksEndAt
-          ? -LOCK_CANVAS_Y
-          : -(LOCK_CANVAS_Y + (sy - worksEndAt) / s);
+    const lock2At = worksEndAt + (LOCK2_CANVAS_Y - LOCK_CANVAS_Y) * s;
+    const end2At = lock2At + TESTIMONIALS_EXTRA;
+    let cy: number;
+    if (sy <= lockAt) cy = -sy / s;
+    else if (sy <= worksEndAt) cy = -LOCK_CANVAS_Y;
+    else if (sy <= lock2At) cy = -(LOCK_CANVAS_Y + (sy - worksEndAt) / s);
+    else if (sy <= end2At) cy = -LOCK2_CANVAS_Y;
+    else cy = -(LOCK2_CANVAS_Y + (sy - end2At) / s);
     canvasRef.current.style.transform = `scale(${s}) translateY(${cy}px)`;
   }, [scale]);
 
@@ -346,29 +356,33 @@ export function MainPage() {
       } else if (sy <= endAt) {
         cy = -LOCK_CANVAS_Y;
       } else {
-        cy = -(LOCK_CANVAS_Y + (sy - endAt) / s);
+        const lock2At = endAt + (LOCK2_CANVAS_Y - LOCK_CANVAS_Y) * s;
+        const end2At = lock2At + TESTIMONIALS_EXTRA;
+        if (sy <= lock2At) {
+          cy = -(LOCK_CANVAS_Y + (sy - endAt) / s);
+        } else if (sy <= end2At) {
+          cy = -LOCK2_CANVAS_Y;
+        } else {
+          cy = -(LOCK2_CANVAS_Y + (sy - end2At) / s);
+        }
       }
 
       if (canvasRef.current) {
         canvasRef.current.style.transform = `scale(${s}) translateY(${cy}px)`;
       }
 
-      // detect + scroll-drive testimonials accordion via getBoundingClientRect
-      const listEl = testimonialsListRef.current;
-      if (listEl) {
-        const rect = listEl.getBoundingClientRect();
-        const inView = rect.top < window.innerHeight * 0.85;
-        if (inView) {
-          if (testimonialsScrollStartRef.current === null) {
-            testimonialsScrollStartRef.current = sy;
-          }
-          const offset = sy - testimonialsScrollStartRef.current;
-          // reveal 1 row per 160px of scroll
-          const count = Math.min(TESTIMONIALS_DATA.length, 1 + Math.floor(offset / 160));
-          if (count !== revealedCountRef.current) {
-            revealedCountRef.current = count;
-            setRevealedCount(count);
-          }
+      // second lock: testimonials pin
+      const lock2At = endAt + (LOCK2_CANVAS_Y - LOCK_CANVAS_Y) * s;
+      const end2At = lock2At + TESTIMONIALS_EXTRA;
+      if (sy >= lock2At && sy <= end2At) {
+        const offset = sy - lock2At;
+        const idx = Math.min(
+          TESTIMONIALS_DATA.length - 1,
+          Math.floor(offset / PER_CARD_SCROLL)
+        );
+        if (idx !== activeIdxRef.current) {
+          activeIdxRef.current = idx;
+          setActiveIdx(idx);
         }
       }
 
@@ -387,7 +401,7 @@ export function MainPage() {
   return (
     <>
       {/* Scroll spacer — total page height inc. works horizontal zone */}
-      <div style={{ height: (DH + worksExtraScroll) * scale }} />
+      <div style={{ height: (DH + worksExtraScroll) * scale + TESTIMONIALS_EXTRA }} />
       {/* Fixed canvas viewport */}
       <div
         style={{
@@ -1073,6 +1087,7 @@ export function MainPage() {
               top: 2980,
               overflow: "hidden",
               height: 160,
+              background: "#000",
             }}
           >
             <div
@@ -1092,7 +1107,6 @@ export function MainPage() {
                   }}
                 >
                   {"Your product can look something like this too "}
-                  <span style={{ color: "#32ff32", fontWeight: 400 }}>→</span>
                 </span>
               ))}
             </div>
@@ -1107,6 +1121,7 @@ export function MainPage() {
               top: 3110.56,
               overflow: "hidden",
               height: 160,
+              background: "#000",
             }}
           >
             <div
@@ -1126,7 +1141,6 @@ export function MainPage() {
                   }}
                 >
                   {"Your product can look something like this too "}
-                  <span style={{ color: "#32ff32", fontWeight: 400 }}>→</span>
                 </span>
               ))}
             </div>
@@ -1146,7 +1160,7 @@ export function MainPage() {
             }}
           />
 
-          {/* Testimonial card (black rounded) */}
+          {/* ── Testimonials accordion ────────────────────────────────── */}
           <div
             style={{
               position: "absolute",
@@ -1154,214 +1168,139 @@ export function MainPage() {
               transform: "translateX(-50%)",
               top: 4192.74,
               width: 1037.718,
-              height: 754.908,
               background: "#000",
               borderRadius: 16,
-            }}
-          />
-
-          {/* Feature box */}
-          <div
-            style={{
-              position: "absolute",
-              left: 504,
-              top: 4308.9,
-              width: 912,
-              height: 324.54,
-              background: "rgba(217,217,217,0.2)",
-              borderRadius: 16,
-            }}
-          />
-
-          {/* Avatar */}
-          <div
-            style={{
-              position: "absolute",
-              left: 544,
-              top: 4346,
-              width: 90.489,
-              height: 90.489,
+              padding: "49px 63px 48px",
+              boxSizing: "border-box",
             }}
           >
-            <Image
-              src={IMG_ELLIPSE2}
-              alt="Avatar"
-              fill
-              className="object-cover rounded-full"
-            />
-          </div>
+            {TESTIMONIALS_DATA.map((t, i) => {
+              const isActive = activeIdx === i;
+              return (
+                <div key={t.name}>
+                  {/* Divider between items */}
+                  {i > 0 && (
+                    <div style={{ width: "100%", height: 1, background: "rgba(255,255,255,0.15)" }} />
+                  )}
 
-          {/* Quote mark */}
-          <p
-            style={{
-              position: "absolute",
-              left: 728.74,
-              top: 4334.28,
-              fontSize: 134,
-              fontFamily: "Arial, sans-serif",
-              color: "#32ff32",
-              margin: 0,
-              whiteSpace: "nowrap",
-              lineHeight: "normal",
-            }}
-          >
-            &ldquo;
-          </p>
-
-          {/* Author name */}
-          <p
-            style={{
-              position: "absolute",
-              left: 504,
-              top: 4242.11,
-              fontSize: 40,
-              lineHeight: "normal",
-              color: "white",
-              whiteSpace: "nowrap",
-              margin: 0,
-            }}
-          >
-            Habibullah Nahid
-          </p>
-
-          {/* Author role */}
-          <p
-            style={{
-              position: "absolute",
-              left: 1305.5,
-              top: 4255.11,
-              fontSize: 18,
-              lineHeight: "normal",
-              color: "white",
-              whiteSpace: "nowrap",
-              margin: 0,
-              transform: "translateX(-50%)",
-              textAlign: "center",
-            }}
-          >
-            <span style={{ color: "rgba(255,255,255,0.5)" }}>
-              Founder and CEO,{" "}
-            </span>
-            CraftedAI
-          </p>
-
-          {/* Quote text — hidden, replaced by accordion below */}
-
-          {/* ── Testimonial accordion list ─────────────────────────────────── */}
-          <div
-            ref={testimonialsListRef}
-            style={{
-              position: "absolute",
-              left: 504,
-              top: 4671.91,
-              width: 912,
-            }}
-          >
-            {TESTIMONIALS_DATA.map((t, i) => (
-              <div
-                key={t.name}
-                style={{
-                  opacity: revealedCount > i ? 1 : 0,
-                  transform: revealedCount > i ? "translateY(0)" : "translateY(28px)",
-                  transition: `opacity 0.5s ease, transform 0.5s ease`,
-                }}
-              >
-                {/* Divider line */}
-                <div
-                  style={{
-                    width: "100%",
-                    height: 1,
-                    background: "rgba(255,255,255,0.15)",
-                    marginBottom: 0,
-                  }}
-                />
-
-                {/* Name row */}
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    padding: "18px 0",
-                    cursor: "default",
-                  }}
-                >
-                  <p
+                  {/* Name row */}
+                  <div
                     style={{
-                      fontSize: 40,
-                      color: "white",
-                      lineHeight: "normal",
-                      margin: 0,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      padding: "20px 0",
                     }}
                   >
-                    {t.name}
-                  </p>
-                  <div
-                    style={{ display: "flex", alignItems: "center", gap: 20 }}
-                  >
+                    <p
+                      style={{
+                        fontSize: 40,
+                        fontWeight: 400,
+                        color: isActive ? "white" : "rgba(255,255,255,0.35)",
+                        lineHeight: "normal",
+                        margin: 0,
+                        transition: "color 0.4s ease",
+                      }}
+                    >
+                      {t.name}
+                    </p>
                     <p
                       style={{
                         fontSize: 18,
                         lineHeight: "normal",
                         whiteSpace: "nowrap",
                         margin: 0,
+                        opacity: isActive ? 1 : 0.35,
+                        transition: "opacity 0.4s ease",
                       }}
                     >
                       <span style={{ color: "rgba(255,255,255,0.5)" }}>
                         {t.role},{" "}
                       </span>
-                      <span style={{ color: "white" }}>{t.company}</span>
+                      <span style={{ color: "white" }}>
+                        {t.company}
+                      </span>
                     </p>
-                    <span
-                      style={{
-                        fontSize: 22,
-                        color: "#32ff32",
-                        display: "inline-block",
-                        transform: revealedCount > i ? "rotate(90deg)" : "rotate(0deg)",
-                        transition: "transform 0.4s cubic-bezier(0.4,0,0.2,1)",
-                      }}
-                    >
-                      →
-                    </span>
                   </div>
-                </div>
 
-                {/* Quote — revealed when this row is shown */}
-                <div
-                  style={{
-                    overflow: "hidden",
-                    maxHeight: revealedCount > i ? 200 : 0,
-                    opacity: revealedCount > i ? 1 : 0,
-                    transition:
-                      "max-height 0.5s cubic-bezier(0.4,0,0.2,1), opacity 0.4s ease",
-                  }}
-                >
-                  <p
+                  {/* Expandable card */}
+                  <div
                     style={{
-                      fontSize: 18,
-                      lineHeight: "30px",
-                      color: "rgba(255,255,255,0.6)",
-                      margin: 0,
-                      paddingBottom: 24,
-                      paddingTop: 4,
+                      display: "grid",
+                      gridTemplateRows: isActive ? "1fr" : "0fr",
+                      opacity: isActive ? 1 : 0,
+                      transition:
+                        "grid-template-rows 0.5s cubic-bezier(0.4,0,0.2,1), opacity 0.4s ease",
                     }}
                   >
-                    &ldquo;{t.quote}&rdquo;
-                  </p>
+                    <div style={{ overflow: "hidden" }}>
+                      <div
+                        style={{
+                          background: "rgba(217,217,217,0.2)",
+                          borderRadius: 16,
+                          padding: "30px 32px",
+                          marginBottom: 20,
+                          display: "flex",
+                          alignItems: "flex-start",
+                          gap: 28,
+                        }}
+                      >
+                        {/* Avatar */}
+                        <div
+                          style={{
+                            width: 90,
+                            height: 90,
+                            borderRadius: "50%",
+                            overflow: "hidden",
+                            position: "relative",
+                            flexShrink: 0,
+                            marginTop: 4,
+                          }}
+                        >
+                          <Image
+                            src={IMG_ELLIPSE2}
+                            alt={t.name}
+                            fill
+                            className="object-cover"
+                          />
+                        </div>
+
+                        {/* Quote mark LEFT of text */}
+                        <p
+                          style={{
+                            fontSize: 134,
+                            fontFamily: "Arial, sans-serif",
+                            color: "#32ff32",
+                            lineHeight: "80px",
+                            margin: 0,
+                            flexShrink: 0,
+                          }}
+                        >
+                          &ldquo;
+                        </p>
+
+                        {/* Quote text */}
+                        <p
+                          style={{
+                            fontSize: 22,
+                            fontWeight: 500,
+                            lineHeight: "33px",
+                            color: "rgba(255,255,255,0.65)",
+                            margin: 0,
+                            paddingTop: 24,
+                          }}
+                        >
+                          {t.quote}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
-            {/* bottom divider */}
-            <div
-              style={{
-                width: "100%",
-                height: 1,
-                background: "rgba(255,255,255,0.15)",
-                opacity: revealedCount >= TESTIMONIALS_DATA.length ? 1 : 0,
-                transition: "opacity 0.5s ease",
-              }}
-            />
+              );
+            })}
           </div>
+
+
 
           {/* ═══ CONTACT ══════════════════════════════════════════════════════════ */}
           {/* Eggshell bg */}
