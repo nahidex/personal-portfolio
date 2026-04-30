@@ -1,203 +1,163 @@
 "use client";
 
 import Link from "next/link";
-import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 
-const DW = 1920;
+const TRANSITION = "450ms cubic-bezier(0.4, 0, 0.2, 1)";
 
 export function Navigation() {
-  const { setTheme, resolvedTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-  const [scale, setScale] = useState(1);
-
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
-    const update = () => setScale(Math.min(1, window.innerWidth / DW));
-    update();
-    window.addEventListener("resize", update);
-    return () => window.removeEventListener("resize", update);
-  }, []);
-
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 10);
+    const onScroll = () => setScrolled(window.scrollY > 60);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const isDark = resolvedTheme === "dark";
-
   return (
-    <nav
-      style={{
-        height: 75 * scale,
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        zIndex: 50,
-      }}
-      className="bg-white/80 dark:bg-[#0d0d0d]/80 backdrop-blur-xl"
-    >
-      {/* Inner 1920px container scaled to viewport */}
+    <>
+      {/* Outer fixed track — spans full viewport, centers child */}
       <div
         style={{
-          position: "absolute",
+          position: "fixed",
           top: 0,
           left: 0,
-          width: DW,
-          transformOrigin: "top left",
-          transform: `scale(${scale})`,
+          right: 0,
+          zIndex: 50,
+          display: "flex",
+          justifyContent: "center",
+          paddingTop: scrolled ? 14 : 0,
+          paddingLeft: scrolled ? 20 : 0,
+          paddingRight: scrolled ? 20 : 0,
+          pointerEvents: "none",
+          transition: `padding ${TRANSITION}`,
         }}
       >
-        {/* Logo — left: 316px, top: 24.25px */}
-        <p
+        {/* The box that shrinks */}
+        <div
           style={{
-            position: "absolute",
-            left: 316,
-            top: 24.25,
-            fontSize: 18,
-            margin: 0,
-            whiteSpace: "nowrap",
+            width: "100%",
+            maxWidth: scrolled ? 656 : 1920,
+            height: scrolled ? 52 : 75,
+            background: "rgba(255, 255, 255, 0.92)",
+            backdropFilter: "blur(20px)",
+            WebkitBackdropFilter: "blur(20px)",
+            borderRadius: scrolled ? 9999 : 0,
+            borderWidth: 1,
+            borderStyle: "solid",
+            borderColor: scrolled ? "rgba(0,0,0,0.10)" : "transparent",
+            boxShadow: scrolled
+              ? "0 4px 24px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.05)"
+              : "none",
+            position: "relative",
+            overflow: "hidden",
+            pointerEvents: "auto",
+            transition: [
+              `max-width ${TRANSITION}`,
+              `height ${TRANSITION}`,
+              `border-radius ${TRANSITION}`,
+              `border-color ${TRANSITION}`,
+              `box-shadow ${TRANSITION}`,
+            ].join(", "),
           }}
-          className="text-black dark:text-white"
         >
-          <span style={{ fontWeight: 500 }} className="uppercase">
-            H. Nahid
-          </span>
-          <span style={{ fontWeight: 500 }}>™</span>
-        </p>
-
-        {/* Available badge — left: 1129.5px, top: 27px */}
-        <p
-          style={{
-            position: "absolute",
-            left: 1129.5,
-            top: 27,
-            fontSize: 18,
-            margin: 0,
-            whiteSpace: "nowrap",
-          }}
-          className="text-black dark:text-white"
-        >
-          <span style={{ fontWeight: 500, color: "#32ff32" }}>✺</span>
-          <span style={{ fontWeight: 500, color: "#01c45e" }}> </span>
-          <span style={{ fontWeight: 500 }}>Available for work</span>
-        </p>
-
-        {/* Cases — left: 1365px */}
-        <Link
-          href="#work"
-          style={{
-            position: "absolute",
-            left: 1365,
-            top: 27,
-            fontSize: 18,
-            fontWeight: 500,
-            textDecoration: "none",
-            whiteSpace: "nowrap",
-          }}
-          className="text-black/50 dark:text-white/50 hover:text-black dark:hover:text-white transition-colors"
-        >
-          Cases
-        </Link>
-
-        {/* About — left: 1453px */}
-        <Link
-          href="#about"
-          style={{
-            position: "absolute",
-            left: 1453,
-            top: 27,
-            fontSize: 18,
-            fontWeight: 500,
-            textDecoration: "none",
-            whiteSpace: "nowrap",
-          }}
-          className="text-black dark:text-white hover:text-black/70 dark:hover:text-white/70 transition-colors"
-        >
-          About
-        </Link>
-
-        {/* Contact — left: 1541px */}
-        <Link
-          href="#contact"
-          style={{
-            position: "absolute",
-            left: 1541,
-            top: 27,
-            fontSize: 18,
-            fontWeight: 500,
-            textDecoration: "none",
-            whiteSpace: "nowrap",
-          }}
-          className="text-black dark:text-white hover:text-black/70 dark:hover:text-white/70 transition-colors"
-        >
-          Contact
-        </Link>
-
-        {/* Dark mode toggle — positioned after Contact */}
-        {mounted && (
-          <button
-            onClick={() => setTheme(isDark ? "light" : "dark")}
-            aria-label="Toggle dark mode"
+          {/* ── FULL-WIDTH LAYOUT (not scrolled) ── */}
+          <div
             style={{
               position: "absolute",
-              left: 1680,
-              top: 23,
-              width: 28,
-              height: 28,
+              inset: 0,
               display: "flex",
               alignItems: "center",
-              justifyContent: "center",
-              borderRadius: "50%",
-              cursor: "pointer",
-              background: "transparent",
+              justifyContent: "space-between",
+              padding: "0 316px",
+              opacity: scrolled ? 0 : 1,
+              transform: scrolled ? "scale(0.96)" : "scale(1)",
+              transition: "opacity 200ms ease, transform 200ms ease",
+              pointerEvents: scrolled ? "none" : "auto",
             }}
-            className="border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
           >
-            {isDark ? (
-              <svg
-                width="13"
-                height="13"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="text-white"
-              >
-                <circle cx="12" cy="12" r="5" />
-                <line x1="12" y1="1" x2="12" y2="3" />
-                <line x1="12" y1="21" x2="12" y2="23" />
-                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
-                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-                <line x1="1" y1="12" x2="3" y2="12" />
-                <line x1="21" y1="12" x2="23" y2="12" />
-                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
-                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-              </svg>
-            ) : (
-              <svg
-                width="13"
-                height="13"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="text-black dark:text-white"
-              >
-                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-              </svg>
-            )}
-          </button>
-        )}
+            <Link
+              href="/"
+              style={{ fontSize: 18, fontWeight: 500, color: "#000", textDecoration: "none", whiteSpace: "nowrap" }}
+            >
+              <span style={{ textTransform: "uppercase" }}>H. Nahid</span>™
+            </Link>
+
+            <div style={{ display: "flex", alignItems: "center", gap: 36 }}>
+              <span style={{ fontSize: 18, fontWeight: 500, color: "#000", whiteSpace: "nowrap" }}>
+                <span style={{ color: "#32ff32" }}>✺</span>{" "}Available for work
+              </span>
+              <Link href="#work"    style={{ fontSize: 18, fontWeight: 500, color: "rgba(0,0,0,0.4)", textDecoration: "none", whiteSpace: "nowrap" }} className="hover:!text-black transition-colors">Cases</Link>
+              <Link href="#about"   style={{ fontSize: 18, fontWeight: 500, color: "#000", textDecoration: "none", whiteSpace: "nowrap" }} className="hover:opacity-70 transition-opacity">About</Link>
+              <Link href="#contact" style={{ fontSize: 18, fontWeight: 500, color: "#000", textDecoration: "none", whiteSpace: "nowrap" }} className="hover:opacity-70 transition-opacity">Contact</Link>
+            </div>
+          </div>
+
+          {/* ── PILL LAYOUT (scrolled) ── */}
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "0 22px",
+              opacity: scrolled ? 1 : 0,
+              transform: scrolled ? "scale(1)" : "scale(1.04)",
+              transition: "opacity 220ms ease 180ms, transform 220ms ease 180ms",
+              pointerEvents: scrolled ? "auto" : "none",
+            }}
+          >
+            <Link
+              href="/"
+              style={{ fontSize: 15, fontWeight: 500, color: "#000", textDecoration: "none", whiteSpace: "nowrap" }}
+            >
+              <span style={{ textTransform: "uppercase" }}>H. Nahid</span>™
+            </Link>
+
+            <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
+              <span style={{ fontSize: 15, fontWeight: 500, color: "#000", whiteSpace: "nowrap" }}>
+                <span style={{ color: "#32ff32" }}>✺</span>{" "}Available for work
+              </span>
+              <Link href="#work"    style={{ fontSize: 14, fontWeight: 500, color: "rgba(0,0,0,0.4)", textDecoration: "none", whiteSpace: "nowrap" }} className="hover:!text-black transition-colors">Cases</Link>
+              <Link href="#about"   style={{ fontSize: 14, fontWeight: 500, color: "#000", textDecoration: "none", whiteSpace: "nowrap" }} className="hover:opacity-70 transition-opacity">About</Link>
+              <Link href="#contact" style={{ fontSize: 14, fontWeight: 500, color: "#000", textDecoration: "none", whiteSpace: "nowrap" }} className="hover:opacity-70 transition-opacity">Contact</Link>
+            </div>
+          </div>
+        </div>
       </div>
-    </nav>
+      {/* Blur overlay under nav box */}
+      <div
+        style={{
+          position: "fixed",
+          top: scrolled ? 14 : 0,
+          left: 0,
+          right: 0,
+          height: scrolled ? 52 : 75,
+          zIndex: 49,
+          pointerEvents: "none",
+          background: "transparent",
+        }}
+      >
+        <div
+          style={{
+            width: "100%",
+            maxWidth: scrolled ? 656 : 1920,
+            margin: "0 auto",
+            height: "100%",
+            borderRadius: scrolled ? 9999 : 0,
+            boxShadow: scrolled ? "0 8px 32px 0 rgba(31, 38, 135, 0.12)" : "none",
+            backdropFilter: "blur(24px)",
+            WebkitBackdropFilter: "blur(24px)",
+            opacity: 0.7,
+            transition: [
+              `max-width ${TRANSITION}`,
+              `border-radius ${TRANSITION}`,
+              `height ${TRANSITION}`,
+            ].join(", ")
+          }}
+        />
+      </div>
+    </>
   );
 }
